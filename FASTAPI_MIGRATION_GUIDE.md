@@ -607,6 +607,7 @@ def export_excel(
 ### Phase 8: Configuration, CORS, Static Files & Main App
 
 #### `app/main.py`:
+
 ```python
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -614,7 +615,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1.api_router import api_router
 from app.db.session import engine, Base, SessionLocal
-from app.db.init_db import init_default_users
+from app.init_db import init_default_users
 
 # Auto-create tables (or use Alembic migrations)
 Base.metadata.create_all(bind=engine)
@@ -642,6 +643,7 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 
 # Attach API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/health")
 def health_check():

@@ -224,3 +224,5 @@ __marimo__/
 
 
 .env
+
+FASTAPI_MIGRATION_GUIDE.md
