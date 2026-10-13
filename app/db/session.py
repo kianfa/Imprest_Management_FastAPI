@@ -7,7 +7,7 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # Automatically reconnects if Supabase drops an idle connection
     pool_size=10,        # Keeps up to 10 active connections in the pool
-    max_overflow=2غ0      # Allows up to 20 temporary extra connections under high load
+    max_overflow=20      # Allows up to 20 temporary extra connections under high load
 )
 
 # Session factory for database transactions
