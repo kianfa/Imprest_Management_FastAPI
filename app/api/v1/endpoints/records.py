@@ -21,7 +21,7 @@ def create_expense_record(
     expense_center: Optional[str] = Form(None),
     expense_type: Optional[str] = Form(None),
     source_pc: Optional[str] = Form(None),
-    images: List[UploadFile] = File(default=[]),
+    images: Optional[List[UploadFile]] = File(None, description="Receipt images (optional)"),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ):
@@ -72,7 +72,7 @@ def create_expense_record(
     # 4. Upload attached images to Supabase Storage
     if images:
         for idx, file in enumerate(images, start=1):
-            if not file.filename:
+            if not file or not file.filename:
                 continue
 
             file_name, public_url = process_and_upload_image(
@@ -81,7 +81,6 @@ def create_expense_record(
                 index=idx
             )
 
-            # Save the CDN URL to PostgreSQL
             img_entry = RecordImage(
                 record_id=new_record.id,
                 file_name=file_name,
