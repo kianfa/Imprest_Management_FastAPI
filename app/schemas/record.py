@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Annotated
-from pydantic import BaseModel, Field, AfterValidator
+from pydantic import BaseModel, Field, AfterValidator, field_validator
 from app.utils.solar_date import validate_jalali_date_str
 
 
@@ -61,7 +61,7 @@ class RecordOut(RecordBase):
     deleted: bool
     created_at: datetime
     last_modified: datetime
-    images: List[RecordImageOut] = []
+    images: List[RecordImageOut] = None
 
     class Config:
         from_attributes = True
