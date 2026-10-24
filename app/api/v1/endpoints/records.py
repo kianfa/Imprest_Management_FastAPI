@@ -7,7 +7,7 @@ from app.models.user import User
 from app.models.record import ExpenseRecord, RecordImage
 from app.schemas.record import RecordOut, RecordCreate
 from app.services.storage_services import process_and_upload_image
-
+from app.utils.solar_date import validate_jalali_date_str
 router = APIRouter()
 
 
@@ -36,7 +36,11 @@ def create_expense_record(
         )
 
     # 1. Validate Shamsi Date
-    RecordCreate.check_valid_jalali_date(record_date)
+    if not validate_jalali_date_str(record_date):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Shamsi date format. Expected 'YYYY/MM/DD' (e.g. 1403/08/03)."
+        )
 
     # 2. Check for duplicate invoice number within the same company
     existing = db.query(ExpenseRecord).filter(
