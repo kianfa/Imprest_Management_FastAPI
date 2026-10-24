@@ -622,20 +622,20 @@ Base.metadata.create_all(bind=engine)
 
 # Seed default users
 with SessionLocal() as db:
-    init_default_users(db)
+   init_default_users(db)
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+   title=settings.PROJECT_NAME,
+   openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
 # CORS configuration
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+   CORSMiddleware,
+   allow_origins=["*"],
+   allow_credentials=True,
+   allow_methods=["*"],
+   allow_headers=["*"],
 )
 
 # Serve uploaded receipt images
@@ -647,7 +647,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "app": settings.PROJECT_NAME}
+   return {"status": "ok", "app": settings.PROJECT_NAME}
 ```
 
 ---

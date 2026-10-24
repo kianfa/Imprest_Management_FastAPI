@@ -3,7 +3,7 @@ from app.api.v1.endpoints import auth, records
 
 api_router = APIRouter()
 
-# Mount auth endpoints under /auth with the tag "Authentication"
+# 1. Mount auth endpoints under /auth with the tag "Authentication"
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 
