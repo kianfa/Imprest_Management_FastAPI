@@ -8,6 +8,9 @@ from app.models.record import ExpenseRecord, RecordImage
 from app.schemas.record import RecordOut, RecordCreate
 from app.services.storage_services import process_and_upload_image
 from app.utils.solar_date import validate_jalali_date_str
+
+from fastapi.responses import StreamingResponse
+from app.services.excel_service import export_records_to_excel
 router = APIRouter()
 
 
@@ -159,3 +162,40 @@ def delete_expense_record(
     record.deleted = True
     db.commit()
     return None
+
+@router.get("/export/excel")
+def export_expense_records_to_excel(
+        invoice_no: Optional[str] = Query(None, description="Filter by invoice number"),
+        project_code: Optional[str] = Query(None, description="Filter by project code"),
+        start_date: Optional[str] = Query(None, description="Start date (YYYY/MM/DD)"),
+        end_date: Optional[str] = Query(None, description="End date (YYYY/MM/DD)"),
+        db: Session = Depends(deps.get_db),
+        current_user: User = Depends(deps.get_current_user),
+):
+
+    query = db.query(ExpenseRecord).filter(
+        ExpenseRecord.company_id == current_user.company_id,
+        ExpenseRecord.deleted == False
+    )
+
+    if invoice_no:
+        query = query.filter(ExpenseRecord.invoice_no.ilike("f%{invoice_no}%") == invoice_no)
+    if project_code:
+        query = query.filter(ExpenseRecord.project_code.ilike("%{project_code}%") == project_code)
+    if start_date:
+        query = query.filter(ExpenseRecord.record_date >= start_date)
+    if end_date:
+        query = query.filter(ExpenseRecord.record_date <= end_date)
+
+    records = query.order_by(ExpenseRecord.record_date.desc()).all()
+
+    company_title = current_user.company.name if current_user.company else "COMPANY X"
+    excel_stream = export_records_to_excel(records=records, company_name=company_title)
+
+    filename = "Expense_Report.xlsx"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(excel_stream,
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers=headers)
