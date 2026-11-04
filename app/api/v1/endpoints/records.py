@@ -14,6 +14,8 @@ from app.services.excel_service import export_records_to_excel
 from app.services.pdf_services import export_records_to_pdf
 from app.utils.solar_date import get_current_jalali_date
 from datetime import datetime
+
+from app.schemas.record import RecordOut, RecordCreate, RecordUpdate
 router = APIRouter()
 
 
@@ -135,6 +137,63 @@ def list_expense_records(
 
     return query.order_by(ExpenseRecord.created_at.desc()).offset(skip).limit(limit).all()
 
+
+@router.put("/{record_id}", response_model=RecordOut)
+def update_expense_record(
+    record_id: str,
+    record_in: RecordUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Updates an existing expense record.
+    - Admins can update any company record.
+    - Regular users can only update their own records.
+    - Supports partial updates (only fields provided in JSON are changed).
+    """
+    # 1. Fetch record ensuring company multi-tenancy
+    record = db.query(ExpenseRecord).filter(
+        ExpenseRecord.id == record_id,
+        ExpenseRecord.company_id == current_user.company_id,
+        ExpenseRecord.deleted == False
+    ).first()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Record not found"
+        )
+
+    # 2. RBAC Permission Check
+    if current_user.role != "admin" and record.created_by_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own records."
+        )
+
+    # 3. If changing invoice number, prevent duplicates within the same company
+    if record_in.invoice_no and record_in.invoice_no != record.invoice_no:
+        existing = db.query(ExpenseRecord).filter(
+            ExpenseRecord.company_id == current_user.company_id,
+            ExpenseRecord.invoice_no == record_in.invoice_no,
+            ExpenseRecord.id != record_id,
+            ExpenseRecord.deleted == False
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invoice number '{record_in.invoice_no}' already exists in your company."
+            )
+
+    # 4. Partial update using exclude_unset=True
+    update_data = record_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(record, field, value)
+
+    # 5. Commit and return updated record
+    db.commit()
+    db.refresh(record)
+    return record
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expense_record(
