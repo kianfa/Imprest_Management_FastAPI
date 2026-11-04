@@ -11,7 +11,9 @@ from app.utils.solar_date import validate_jalali_date_str
 
 from fastapi.responses import StreamingResponse
 from app.services.excel_service import export_records_to_excel
-from app.services.pdf_service import export_records_to_pdf
+from app.services.pdf_services import export_records_to_pdf
+from app.utils.solar_date import get_current_jalali_date
+from datetime import datetime
 router = APIRouter()
 
 
@@ -242,9 +244,12 @@ def export_expense_records_to_pdf(
     )
 
     # 3. Stream binary PDF back to browser
-    filename = "Expense_Report.pdf"
+    date_stamp = get_current_jalali_date().replace("/", "")
+    time_stamp = datetime.now().strftime("%H%M%S")
+    filename = f"Expense_Report_{date_stamp}_{time_stamp}.pdf"
     headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "no-cache, must-revalidate",
     }
 
     return StreamingResponse(
