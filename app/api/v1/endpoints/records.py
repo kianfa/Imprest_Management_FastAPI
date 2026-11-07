@@ -1,7 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
-
+from app.core.supabase_client import supabase
+from app.core.config import settings
 from app.api import deps
 from app.models.user import User
 from app.models.record import ExpenseRecord, RecordImage
@@ -19,6 +20,101 @@ from app.schemas.record import RecordOut, RecordCreate, RecordUpdate
 router = APIRouter()
 
 
+
+
+@router.post("/{record_id}/images", response_model=RecordOut, status_code=status.HTTP_201_CREATED)
+def add_record_images(
+        record_id: str,
+        images: List[UploadFile] = File(..., description="Receipt images to append"),
+        db: Session = Depends(deps.get_db),
+        current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Appends new receipt photos to an existing expense record.
+    Automatically increments the photo index (e.g. 003.jpg, 004.jpg).
+    """
+
+    record = db.query(ExpenseRecord).filter(
+        ExpenseRecord.id == record_id,
+        ExpenseRecord.company_id == current_user.company_id,
+        ExpenseRecord.deleted == False,
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+
+    if current_user.role != "admin" and current_user.id != record.created_by_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only add receipts to your own records.")
+
+    current_count = len(record.images) if record.images else 0
+    for idx, file in enumerate(images, start=current_count + 1):
+        if not file or not file.filename:
+            continue
+        file_name, public_url = process_and_upload_image(
+            record_id=record.id,
+            file=file,
+            index=idx
+        )
+        img_entry = RecordImage(
+            record_id=record.id,
+            file_name=file_name,
+            file_path=public_url
+        )
+        db.add(img_entry)
+    db.commit()
+    db.refresh(record)
+    return record
+
+@router.delete("/{record_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record_image(
+    record_id: str,
+    image_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Deletes a specific receipt photo from both:
+    1. Supabase Cloud Storage (frees storage quota)
+    2. PostgreSQL database
+    """
+    # 1. Fetch record ensuring company multi-tenancy
+    record = db.query(ExpenseRecord).filter(
+        ExpenseRecord.id == record_id,
+        ExpenseRecord.company_id == current_user.company_id,
+        ExpenseRecord.deleted == False
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+
+    # 2. Permission check
+    if current_user.role != "admin" and record.created_by_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete receipts from your own records."
+        )
+
+    # 3. Find the specific image
+    image = db.query(RecordImage).filter(
+        RecordImage.id == image_id,
+        RecordImage.record_id == record.id
+    ).first()
+
+    if not image:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image attachment not found")
+
+    # 4. Remove file from Supabase Storage bucket
+    try:
+        storage_file_path = f"{record.id}/{image.file_name}"
+        supabase.storage.from_(settings.SUPABASE_BUCKET_NAME).remove([storage_file_path])
+    except Exception:
+        # If cloud storage delete fails, continue to delete from DB
+        pass
+
+    # 5. Delete from PostgreSQL
+    db.delete(image)
+    db.commit()
+    return None
 @router.post("/", response_model=RecordOut, status_code=status.HTTP_201_CREATED)
 def create_expense_record(
     invoice_no: str = Form(..., description="Invoice Number"),
@@ -261,6 +357,8 @@ def export_expense_records_to_excel(
     return StreamingResponse(excel_stream,
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers=headers)
+
+
 
 
 @router.get("/export/pdf")
