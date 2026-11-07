@@ -108,7 +108,7 @@ def delete_record_image(
         storage_file_path = f"{record.id}/{image.file_name}"
         supabase.storage.from_(settings.SUPABASE_BUCKET_NAME).remove([storage_file_path])
     except Exception:
-        # If cloud storage delete fails, continue to delete from DB
+        # If cloud storage delete fails, continue to delete from DB #TODO(KF): Not a wise idea. we should add a bakground worker to do this or at least log the error.
         pass
 
     # 5. Delete from PostgreSQL
