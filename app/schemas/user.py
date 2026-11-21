@@ -1,17 +1,23 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserBase(BaseModel):
-    username: str
-    full_name: str
-    role: str = "user"
+    username: str = Field(..., min_length=3, max_length=50, description="Unique username")
+    full_name: str = Field(..., min_length=2, max_length=100, description="Full real name")
+    role: str = Field("user", description="Role: 'admin' or 'user'")
 
 
 class UserCreate(UserBase):
-    password: str
-    company_id: Optional[int] = None
+    password: str = Field(..., min_length=6, description="Plain text password (will be hashed)")
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    role: Optional[str] = Field(None, description="'admin' or 'user'")
+    is_active: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=6, description="New password if resetting")
 
 
 class UserOut(UserBase):
@@ -22,4 +28,4 @@ class UserOut(UserBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True  # Allows converting SQLAlchemy User ORM model to Pydantic JSON
+        from_attributes = True
