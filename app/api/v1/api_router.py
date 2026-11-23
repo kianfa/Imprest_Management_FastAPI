@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     project_codes,
     expense_centers,
     categories,
+    users,
 )
 
 api_router = APIRouter()
@@ -19,3 +20,5 @@ api_router.include_router(records.router, prefix="/records", tags=["Expense Reco
 api_router.include_router(project_codes.router, prefix="/project-codes", tags=["Project Codes"])
 api_router.include_router(expense_centers.router, prefix="/expense-centers", tags=["Expense Centers"])
 api_router.include_router(categories.router, prefix="/categories", tags=["Categories"])
+
+api_router.include_router(users.router, prefix="/users", tags=["User Management"])

@@ -79,3 +79,111 @@ def create_company_user(
     db.commit()
     db.refresh(new_user)
     return new_user
+
+# 3. UPDATE USER / RESET PASSWORD (Admin Only)
+@router.put("/{user_id}", response_model=UserOut)
+def update_company_user(
+    user_id: int,
+    payload: UserUpdate,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.require_admin),
+):
+    """
+    Update employee profile, change role, or reset password.
+    Enforces multi-tenancy and self-lockout prevention.
+    """
+    # 🔒 1. Multi-Tenant Safe Lookup
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.company_id == current_admin.company_id,
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User ID '{user_id}' not found in your company."
+        )
+
+    # 🔒 2. Prevent Self-Lockout
+    if current_admin.id == user.id:
+        if payload.is_active is False:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot deactivate your own admin account."
+            )
+        if payload.role and payload.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot demote yourself from the admin role."
+            )
+
+    # 🔒 3. Prevent Privilege Escalation
+    if payload.role and payload.role not in ["user", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only assign 'user' or 'admin' roles."
+        )
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    # 🔒 4. Handle Password Reset
+    if "password" in update_data:
+        raw_password = update_data.pop("password")
+        user.hashed_password = get_password_hash(raw_password)
+
+    # 5. Apply remaining profile updates (full_name, role, is_active)
+    for field, value in update_data.items():
+        setattr(user, field, value.strip() if isinstance(value, str) else value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+# 4. DELETE / DEACTIVATE USER (Admin Only - Audit Safe)
+@router.delete("/{user_id}")
+def delete_company_user(
+    user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.require_admin),
+):
+    """
+    Deactivates or deletes an employee.
+    If the user has historical receipts, they are deactivated to preserve financial audit trails.
+    """
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.company_id == current_admin.company_id,
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User ID '{user_id}' not found in your company."
+        )
+
+    # 🔒 1. Cannot delete self
+    if current_admin.id == user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account."
+        )
+
+    # 🛡️ 2. Check for Historical Expense Records
+    has_records = db.query(ExpenseRecord).filter(
+        ExpenseRecord.created_by_id == user.id,
+        ExpenseRecord.company_id == current_admin.company_id,
+    ).first()
+
+    if has_records:
+        # User has receipts -> Preserve audit trail, DEACTIVATE only
+        user.is_active = False
+        db.commit()
+        return {
+            "detail": f"User '{user.username}' has historical expense records and was deactivated instead of deleted to protect the audit trail."
+        }
+
+    # User has zero receipts -> Safe to hard delete
+    db.delete(user)
+    db.commit()
+    return {"detail": f"User '{user.username}' deleted successfully."}
