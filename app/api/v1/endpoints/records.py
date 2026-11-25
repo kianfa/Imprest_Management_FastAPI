@@ -202,10 +202,33 @@ def create_expense_record(
     return new_record
 
 
+def _apply_record_filters(
+    query,
+    invoice_no: Optional[str] = None,
+    project_code: Optional[str] = None,
+    expense_center: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Applies shared search and date-range filters to an ExpenseRecord query."""
+    if invoice_no:
+        query = query.filter(ExpenseRecord.invoice_no.ilike(f"%{invoice_no}%"))
+    if project_code:
+        query = query.filter(ExpenseRecord.project_code.ilike(f"%{project_code}%"))
+    if expense_center:
+        query = query.filter(ExpenseRecord.expense_center.ilike(f"%{expense_center}%"))
+    if start_date:
+        query = query.filter(ExpenseRecord.record_date >= start_date)
+    if end_date:
+        query = query.filter(ExpenseRecord.record_date <= end_date)
+    return query
+
+
 @router.get("/", response_model=List[RecordOut])
 def list_expense_records(
     invoice_no: Optional[str] = Query(None, description="Search by invoice number (partial)"),
     project_code: Optional[str] = Query(None, description="Search by project code"),
+    expense_center: Optional[str] = Query(None, description="Filter by expense center"),
     start_date: Optional[str] = Query(None, description="Start date (YYYY/MM/DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY/MM/DD)"),
     skip: int = Query(0, ge=0, description="Pagination skip offset"),
@@ -215,21 +238,13 @@ def list_expense_records(
 ):
     """
     Lists expense records for the authenticated user's company.
-    Supports filtering by invoice number, project code, and date ranges.
+    Supports filtering by invoice number, project code, expense center, and date ranges.
     """
     query = db.query(ExpenseRecord).filter(
         ExpenseRecord.company_id == current_user.company_id,
         ExpenseRecord.deleted == False
     )
-
-    if invoice_no:
-        query = query.filter(ExpenseRecord.invoice_no.ilike(f"%{invoice_no}%"))
-    if project_code:
-        query = query.filter(ExpenseRecord.project_code.ilike(f"%{project_code}%"))
-    if start_date:
-        query = query.filter(ExpenseRecord.record_date >= start_date)
-    if end_date:
-        query = query.filter(ExpenseRecord.record_date <= end_date)
+    query = _apply_record_filters(query, invoice_no, project_code, expense_center, start_date, end_date)
 
     return query.order_by(ExpenseRecord.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -325,6 +340,7 @@ def delete_expense_record(
 def export_expense_records_to_excel(
         invoice_no: Optional[str] = Query(None, description="Filter by invoice number"),
         project_code: Optional[str] = Query(None, description="Filter by project code"),
+        expense_center: Optional[str] = Query(None, description="Filter by expense center"),
         start_date: Optional[str] = Query(None, description="Start date (YYYY/MM/DD)"),
         end_date: Optional[str] = Query(None, description="End date (YYYY/MM/DD)"),
         db: Session = Depends(deps.get_db),
@@ -335,15 +351,7 @@ def export_expense_records_to_excel(
         ExpenseRecord.company_id == current_user.company_id,
         ExpenseRecord.deleted == False
     )
-
-    if invoice_no:
-        query = query.filter(ExpenseRecord.invoice_no.ilike("f%{invoice_no}%") == invoice_no)
-    if project_code:
-        query = query.filter(ExpenseRecord.project_code.ilike("%{project_code}%") == project_code)
-    if start_date:
-        query = query.filter(ExpenseRecord.record_date >= start_date)
-    if end_date:
-        query = query.filter(ExpenseRecord.record_date <= end_date)
+    query = _apply_record_filters(query, invoice_no, project_code, expense_center, start_date, end_date)
 
     records = query.order_by(ExpenseRecord.record_date.desc()).all()
 
@@ -365,6 +373,7 @@ def export_expense_records_to_excel(
 def export_expense_records_to_pdf(
     invoice_no: Optional[str] = Query(None, description="Filter by invoice number"),
     project_code: Optional[str] = Query(None, description="Filter by project code"),
+    expense_center: Optional[str] = Query(None, description="Filter by expense center"),
     start_date: Optional[str] = Query(None, description="Start date (YYYY/MM/DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY/MM/DD)"),
     include_receipts: bool = Query(True, description="Include receipt photos as attachments"),
@@ -380,15 +389,7 @@ def export_expense_records_to_pdf(
         ExpenseRecord.company_id == current_user.company_id,
         ExpenseRecord.deleted == False
     )
-
-    if invoice_no:
-        query = query.filter(ExpenseRecord.invoice_no.ilike(f"%{invoice_no}%"))
-    if project_code:
-        query = query.filter(ExpenseRecord.project_code.ilike(f"%{project_code}%"))
-    if start_date:
-        query = query.filter(ExpenseRecord.record_date >= start_date)
-    if end_date:
-        query = query.filter(ExpenseRecord.record_date <= end_date)
+    query = _apply_record_filters(query, invoice_no, project_code, expense_center, start_date, end_date)
 
     records: list[ExpenseRecord] = query.order_by(ExpenseRecord.record_date.asc()).all()
 

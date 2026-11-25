@@ -36,6 +36,7 @@ export interface RecordUpdate {
 export interface RecordFilters {
   invoice_no?: string;
   project_code?: string;
+  expense_center?: string;
   explanation?: string;
   start_date?: string;
   end_date?: string;

@@ -5,6 +5,7 @@ function buildQuery(filters: RecordFilters): string {
   const params = new URLSearchParams();
   if (filters.invoice_no) params.set("invoice_no", filters.invoice_no);
   if (filters.project_code) params.set("project_code", filters.project_code);
+  if (filters.expense_center) params.set("expense_center", filters.expense_center);
   if (filters.explanation) params.set("explanation", filters.explanation);
   if (filters.start_date) params.set("start_date", filters.start_date);
   if (filters.end_date) params.set("end_date", filters.end_date);

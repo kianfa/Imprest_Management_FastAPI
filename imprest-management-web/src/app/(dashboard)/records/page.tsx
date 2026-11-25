@@ -36,6 +36,7 @@ export default function RecordsPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
+  const [expenseCenterFilter, setExpenseCenterFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(0);
@@ -72,6 +73,7 @@ export default function RecordsPage() {
       const data = await recordsService.getAll({
         invoice_no: searchQuery || undefined,
         project_code: projectFilter || undefined,
+        expense_center: expenseCenterFilter || undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         skip: page * PAGE_LIMIT,
@@ -83,7 +85,7 @@ export default function RecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, projectFilter, startDate, endDate, page]);
+  }, [searchQuery, projectFilter, expenseCenterFilter, startDate, endDate, page]);
 
   useEffect(() => {
     loadLookups();
@@ -165,7 +167,7 @@ export default function RecordsPage() {
           }}
           className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
         >
-          <div className="grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid flex-1 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
             <div className="relative">
               <Search className="pointer-events-none absolute start-3 top-3 h-4 w-4 text-[var(--text-muted)]" />
               <input
@@ -194,6 +196,23 @@ export default function RecordsPage() {
               ))}
             </select>
 
+            <select
+              aria-label={t.expenseCenter}
+              value={expenseCenterFilter}
+              onChange={(e) => {
+                setExpenseCenterFilter(e.target.value);
+                setPage(0);
+              }}
+              className="min-h-[42px] w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 text-sm outline-none focus:border-[var(--accent-primary)]"
+            >
+              <option value="">{t.allExpenseCenters}</option>
+              {expenseCenters.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
             <JalaliDateInput
               placeholder={t.startDate}
               value={startDate}
@@ -212,7 +231,7 @@ export default function RecordsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => recordsService.exportExcel({ project_code: projectFilter || undefined, start_date: startDate || undefined, end_date: endDate || undefined })}
+              onClick={() => recordsService.exportExcel({ invoice_no: searchQuery || undefined, project_code: projectFilter || undefined, expense_center: expenseCenterFilter || undefined, start_date: startDate || undefined, end_date: endDate || undefined })}
               className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3.5 text-sm font-medium hover:border-[var(--accent-primary)]"
             >
               <FileSpreadsheet className="h-4 w-4 text-[var(--status-success)]" />
@@ -221,7 +240,7 @@ export default function RecordsPage() {
 
             <button
               type="button"
-              onClick={() => recordsService.exportPdf({ project_code: projectFilter || undefined, start_date: startDate || undefined, end_date: endDate || undefined })}
+              onClick={() => recordsService.exportPdf({ invoice_no: searchQuery || undefined, project_code: projectFilter || undefined, expense_center: expenseCenterFilter || undefined, start_date: startDate || undefined, end_date: endDate || undefined })}
               className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3.5 text-sm font-medium hover:border-[var(--accent-primary)]"
             >
               <Download className="h-4 w-4 text-[var(--accent-navy)]" />
