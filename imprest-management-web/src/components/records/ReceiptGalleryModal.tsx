@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trash2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HoldToDeleteButton } from "@/components/ui/HoldToDeleteButton";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useApp } from "@/context/AppContext";
 import { recordsService } from "@/services/records.service";
-import type { ExpenseRecord } from "@/types/record";
+import type { ExpenseRecord, RecordImage } from "@/types/record";
 
 interface ReceiptGalleryModalProps {
   record: ExpenseRecord | null;
@@ -17,6 +19,8 @@ export function ReceiptGalleryModal({ record, onClose, onUpdated }: ReceiptGalle
   const { t } = useApp();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<RecordImage | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   if (!record) return null;
 
@@ -38,14 +42,18 @@ export function ReceiptGalleryModal({ record, onClose, onUpdated }: ReceiptGalle
     }
   };
 
-  const handleDeleteImage = async (imageId: number) => {
-    if (!confirm(t.confirmDelete)) return;
+  const confirmDeleteImage = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     setError("");
     try {
-      await recordsService.deleteImage(record.id, imageId);
+      await recordsService.deleteImage(record.id, deleteTarget.id);
+      setDeleteTarget(null);
       onUpdated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -78,19 +86,23 @@ export function ReceiptGalleryModal({ record, onClose, onUpdated }: ReceiptGalle
               </a>
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="truncate text-xs text-[var(--text-muted)]">{img.file_name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteImage(img.id)}
-                  aria-label={t.delete}
-                  className="rounded-lg p-1.5 text-[var(--status-danger)] hover:bg-[var(--status-danger)]/15"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <HoldToDeleteButton
+                  label={t.holdToDeleteHint}
+                  onTrigger={() => setDeleteTarget(img)}
+                />
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteImage}
+        itemName={deleteTarget?.file_name}
+        loading={deleting}
+      />
     </Modal>
   );
 }

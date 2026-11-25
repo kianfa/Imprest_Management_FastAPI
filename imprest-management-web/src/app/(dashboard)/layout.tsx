@@ -27,8 +27,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-app)] text-sm text-[var(--text-muted)]">
-        {t.loading}
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-app)]">
+        <div
+          role="status"
+          aria-label={t.loading}
+          className="h-8 w-8 animate-spin rounded-full border-3 border-[var(--accent-primary)] border-t-transparent"
+        />
       </div>
     );
   }

@@ -12,13 +12,14 @@ import {
   Plus,
   Receipt,
   Search,
-  Trash2,
   Wallet,
 } from "lucide-react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { RecordFormModal } from "@/components/records/RecordFormModal";
 import { ReceiptGalleryModal } from "@/components/records/ReceiptGalleryModal";
 import { JalaliDateInput } from "@/components/ui/JalaliDateInput";
+import { HoldToDeleteButton } from "@/components/ui/HoldToDeleteButton";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useApp } from "@/context/AppContext";
 import { recordsService } from "@/services/records.service";
 import { lookupsService } from "@/services/lookups.service";
@@ -50,6 +51,8 @@ export default function RecordsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ExpenseRecord | null>(null);
   const [galleryRecord, setGalleryRecord] = useState<ExpenseRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExpenseRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadLookups = useCallback(async () => {
     try {
@@ -103,13 +106,17 @@ export default function RecordsPage() {
     }
   }, [records, galleryRecord]);
 
-  const handleDeleteRecord = async (id: string) => {
-    if (!confirm(t.confirmDelete)) return;
+  const confirmDeleteRecord = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await recordsService.delete(id);
-      await loadRecords();
+      await recordsService.delete(deleteTarget.id);
+      setRecords((prev) => prev.filter((rec) => rec.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Delete failed");
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -288,8 +295,14 @@ export default function RecordsPage() {
           <tbody className="divide-y divide-[var(--border-subtle)]">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-[var(--text-muted)]">
-                  {t.loading}
+                <td colSpan={8} className="px-4 py-12">
+                  <div className="flex items-center justify-center">
+                    <div
+                      role="status"
+                      aria-label={t.loading}
+                      className="h-7 w-7 animate-spin rounded-full border-3 border-[var(--accent-primary)] border-t-transparent"
+                    />
+                  </div>
                 </td>
               </tr>
             ) : records.length === 0 ? (
@@ -340,14 +353,10 @@ export default function RecordsPage() {
                         >
                           <Edit3 className="h-4 w-4" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteRecord(rec.id)}
-                          aria-label={t.delete}
-                          className="rounded-lg p-1.5 text-[var(--status-danger)] hover:bg-[var(--status-danger)]/15"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <HoldToDeleteButton
+                          label={t.holdToDeleteHint}
+                          onTrigger={() => setDeleteTarget(rec)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -361,7 +370,13 @@ export default function RecordsPage() {
       {/* Mobile PWA Card Stack */}
       <div className="space-y-3 md:hidden">
         {loading ? (
-          <div className="py-10 text-center text-sm text-[var(--text-muted)]">{t.loading}</div>
+          <div className="flex items-center justify-center py-12">
+            <div
+              role="status"
+              aria-label={t.loading}
+              className="h-7 w-7 animate-spin rounded-full border-3 border-[var(--accent-primary)] border-t-transparent"
+            />
+          </div>
         ) : records.length === 0 ? (
           <div className="py-10 text-center text-sm text-[var(--text-muted)]">{t.noRecords}</div>
         ) : (
@@ -413,13 +428,11 @@ export default function RecordsPage() {
                     >
                       <Edit3 className="h-4 w-4" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRecord(rec.id)}
-                      className="rounded-lg bg-[var(--status-danger)]/10 p-2 text-[var(--status-danger)]"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <HoldToDeleteButton
+                      label={t.holdToDeleteHint}
+                      onTrigger={() => setDeleteTarget(rec)}
+                      className="bg-[var(--status-danger)]/10"
+                    />
                   </div>
                 </div>
               </div>
@@ -470,6 +483,14 @@ export default function RecordsPage() {
         record={galleryRecord}
         onClose={() => setGalleryRecord(null)}
         onUpdated={loadRecords}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteRecord}
+        itemName={deleteTarget ? `${t.invoiceNo}: ${deleteTarget.invoice_no}` : undefined}
+        loading={deleting}
       />
     </DashboardShell>
   );

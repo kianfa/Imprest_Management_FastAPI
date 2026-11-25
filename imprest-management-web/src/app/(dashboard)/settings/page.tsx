@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
+import { HoldToDeleteButton } from "@/components/ui/HoldToDeleteButton";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useApp } from "@/context/AppContext";
 import { lookupsService, type LookupEndpoint } from "@/services/lookups.service";
 import { usersService } from "@/services/users.service";
@@ -24,6 +26,8 @@ export default function SettingsPage() {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<"user" | "admin">("user");
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "user" | LookupEndpoint; id: number; label: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
@@ -233,21 +237,10 @@ export default function SettingsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-end">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(t.confirmDelete)) return;
-                        try {
-                          await usersService.delete(u.id);
-                          loadTab();
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : "Failed");
-                        }
-                      }}
-                      className="rounded-lg p-1.5 text-[var(--status-danger)] hover:bg-[var(--status-danger)]/15"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <HoldToDeleteButton
+                      label={t.holdToDeleteHint}
+                      onTrigger={() => setDeleteTarget({ type: "user", id: u.id, label: u.username })}
+                    />
                   </td>
                 </tr>
               ))}
@@ -280,21 +273,16 @@ export default function SettingsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-end">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(t.confirmDelete)) return;
-                        try {
-                          await lookupsService.delete(activeTab, item.id);
-                          loadTab();
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : "Failed");
-                        }
-                      }}
-                      className="rounded-lg p-1.5 text-[var(--status-danger)] hover:bg-[var(--status-danger)]/15"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <HoldToDeleteButton
+                      label={t.holdToDeleteHint}
+                      onTrigger={() =>
+                        setDeleteTarget({
+                          type: activeTab as LookupEndpoint,
+                          id: item.id,
+                          label: item.name,
+                        })
+                      }
+                    />
                   </td>
                 </tr>
               ))}
@@ -302,6 +290,38 @@ export default function SettingsPage() {
           </table>
         )}
       </div>
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        itemName={deleteTarget?.label}
+        loading={deleting}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          setDeleting(true);
+          setError("");
+          try {
+            if (deleteTarget.type === "user") {
+              const res = await usersService.delete(deleteTarget.id);
+              if (res.detail.includes("deactivated")) {
+                setUsers((prev) =>
+                  prev.map((u) => (u.id === deleteTarget.id ? { ...u, is_active: false } : u))
+                );
+              } else {
+                setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+              }
+            } else {
+              await lookupsService.delete(deleteTarget.type, deleteTarget.id);
+              setLookups((prev) => prev.filter((l) => l.id !== deleteTarget.id));
+            }
+            setDeleteTarget(null);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed");
+          } finally {
+            setDeleting(false);
+          }
+        }}
+      />
     </DashboardShell>
   );
 }
