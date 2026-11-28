@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { HoldToDeleteButton } from "@/components/ui/HoldToDeleteButton";
 import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
+import { compressImages } from "@/lib/imageCompression";
 import { useApp } from "@/context/AppContext";
 import { recordsService } from "@/services/records.service";
 import type { ExpenseRecord, RecordImage } from "@/types/record";
@@ -31,8 +32,9 @@ export function ReceiptGalleryModal({ record, onClose, onUpdated }: ReceiptGalle
     setUploading(true);
     setError("");
     try {
+      const optimized = await compressImages(files);
       const fd = new FormData();
-      Array.from(files).forEach((f) => fd.append("images", f));
+      optimized.forEach((f) => fd.append("images", f));
       await recordsService.addImages(record.id, fd);
       onUpdated();
     } catch (err) {

@@ -84,6 +84,7 @@ export const translations = {
     ticketSubmitted: "تیکت با موفقیت ثبت شد.",
     ticketResolved: "تیکت به عنوان رفع‌شده ثبت شد.",
     submitting: "در حال ثبت...",
+    compressingImages: "در حال بهینه‌سازی تصاویر...",
   },
   en: {
     appName: "CashTrack",
@@ -168,5 +169,6 @@ export const translations = {
     ticketSubmitted: "Ticket submitted successfully.",
     ticketResolved: "Ticket marked as resolved.",
     submitting: "Submitting...",
+    compressingImages: "Optimizing receipt photos...",
   },
 } as const;

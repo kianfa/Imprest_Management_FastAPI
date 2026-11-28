@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { JalaliDateInput } from "@/components/ui/JalaliDateInput";
+import { compressImages } from "@/lib/imageCompression";
 import { useApp } from "@/context/AppContext";
 import { recordsService } from "@/services/records.service";
 import type { ExpenseRecord } from "@/types/record";
@@ -38,6 +39,7 @@ export function RecordFormModal({
   const [files, setFiles] = useState<FileList | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
   useEffect(() => {
     if (editingRecord) {
@@ -86,8 +88,11 @@ export function RecordFormModal({
         if (expenseCenter) fd.append("expense_center", expenseCenter);
         if (expenseType) fd.append("expense_type", expenseType);
         if (explanation) fd.append("explanation", explanation);
-        if (files) {
-          Array.from(files).forEach((file) => fd.append("images", file));
+        if (files && files.length > 0) {
+          setCompressing(true);
+          const optimized = await compressImages(files);
+          optimized.forEach((file) => fd.append("images", file));
+          setCompressing(false);
         }
         await recordsService.create(fd);
       }
@@ -293,10 +298,10 @@ export function RecordFormModal({
           </button>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || compressing}
             className="rounded-xl bg-[var(--accent-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--accent-primary-hover)] disabled:opacity-60"
           >
-            {saving ? t.loading : t.save}
+            {compressing ? t.compressingImages : saving ? t.loading : t.save}
           </button>
         </div>
       </form>
