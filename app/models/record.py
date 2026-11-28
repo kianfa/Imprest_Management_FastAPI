@@ -36,6 +36,13 @@ class ExpenseRecord(Base):
     company = relationship("Company", back_populates="records")
     creator = relationship("User", back_populates="records")
     images = relationship("RecordImage", back_populates="record", cascade="all, delete-orphan")
+    tickets = relationship(
+        "RecordTicket",
+        back_populates="record",
+        cascade="all, delete-orphan",
+        order_by="desc(RecordTicket.created_at)"
+    )
+
 
 
 class RecordImage(Base):
