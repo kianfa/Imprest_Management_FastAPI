@@ -139,6 +139,11 @@ export function JalaliDateInput({
         id={id}
         type="text"
         dir="ltr"
+        inputMode="numeric"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
         required={required}
         placeholder={placeholder}
         value={value}

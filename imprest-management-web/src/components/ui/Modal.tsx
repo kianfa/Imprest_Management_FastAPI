@@ -32,17 +32,18 @@ export function Modal({
     }
   }, [open]);
 
-  // Light-dismiss fallback for browsers without closedby="any"
-  const handlePointerDown = (e: React.PointerEvent<HTMLDialogElement>) => {
+  // Light-dismiss fallback for browsers without closedby="any" (e.g. Safari)
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if ("closedBy" in HTMLDialogElement.prototype) return;
     const dialog = dialogRef.current;
-    if (!dialog) return;
+    if (!dialog || e.target !== dialog) return;
     const r = dialog.getBoundingClientRect();
-    const isOutside =
-      e.clientX < r.left ||
-      e.clientX > r.right ||
-      e.clientY < r.top ||
-      e.clientY > r.bottom;
-    if (isOutside) {
+    const isDialogContent =
+      r.top <= e.clientY &&
+      e.clientY <= r.bottom &&
+      r.left <= e.clientX &&
+      e.clientX <= r.right;
+    if (!isDialogContent) {
       onClose();
     }
   };
@@ -50,12 +51,16 @@ export function Modal({
   return (
     <dialog
       ref={dialogRef}
+      {...({ closedby: "any" } as Record<string, unknown>)}
       aria-labelledby={titleId}
+      onClose={() => {
+        if (open) onClose();
+      }}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
-      onPointerDown={handlePointerDown}
+      onClick={handleBackdropClick}
       className={`m-auto w-[92vw] ${maxWidth} rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-0 text-[var(--text-primary)] shadow-2xl`}
     >
       <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-4">
