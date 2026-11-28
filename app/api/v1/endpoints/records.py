@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from app.core.supabase_client import supabase
 from app.core.config import settings
 from app.api import deps
@@ -15,7 +15,6 @@ from app.services.excel_service import export_records_to_excel
 from app.services.pdf_services import export_records_to_pdf
 from app.utils.solar_date import get_current_jalali_date
 from datetime import datetime
-
 from app.schemas.record import RecordOut, RecordCreate, RecordUpdate
 router = APIRouter()
 
@@ -240,9 +239,16 @@ def list_expense_records(
     Lists expense records for the authenticated user's company.
     Supports filtering by invoice number, project code, expense center, and date ranges.
     """
-    query = db.query(ExpenseRecord).filter(
-        ExpenseRecord.company_id == current_user.company_id,
-        ExpenseRecord.deleted == False
+    query = (
+        db.query(ExpenseRecord)
+        .options(
+            selectinload(ExpenseRecord.images),
+            selectinload(ExpenseRecord.tickets),
+        )
+        .filter(
+            ExpenseRecord.company_id == current_user.company_id,
+            ExpenseRecord.deleted == False
+        )
     )
     query = _apply_record_filters(query, invoice_no, project_code, expense_center, start_date, end_date)
 
@@ -385,9 +391,13 @@ def export_expense_records_to_pdf(
     Optionally fetches and attaches receipt photos from Supabase Storage.
     """
     # 1. Query records matching user's company and active filters
-    query = db.query(ExpenseRecord).filter(
-        ExpenseRecord.company_id == current_user.company_id,
-        ExpenseRecord.deleted == False
+    query = (
+        db.query(ExpenseRecord)
+        .options(selectinload(ExpenseRecord.images))
+        .filter(
+            ExpenseRecord.company_id == current_user.company_id,
+            ExpenseRecord.deleted == False
+        )
     )
     query = _apply_record_filters(query, invoice_no, project_code, expense_center, start_date, end_date)
 
