@@ -1,5 +1,5 @@
 import { apiFetch, apiDownload } from "@/lib/api-client";
-import type { ExpenseRecord, RecordFilters, RecordUpdate } from "@/types/record";
+import type { ExpenseRecord, RecordFilters, RecordTicket, RecordUpdate } from "@/types/record";
 
 function buildQuery(filters: RecordFilters): string {
   const params = new URLSearchParams();
@@ -59,5 +59,22 @@ export const recordsService = {
 
   async exportPdf(filters: RecordFilters = {}): Promise<void> {
     return apiDownload(`/records/export/pdf${buildQuery(filters)}`, "imprest_records.pdf");
+  },
+
+  async getTickets(recordId: string): Promise<RecordTicket[]> {
+    return apiFetch<RecordTicket[]>(`/records/${recordId}/tickets`);
+  },
+
+  async createTicket(recordId: string, message: string): Promise<RecordTicket> {
+    return apiFetch<RecordTicket>(`/records/${recordId}/tickets`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    });
+  },
+
+  async resolveTicket(recordId: string, ticketId: number): Promise<RecordTicket> {
+    return apiFetch<RecordTicket>(`/records/${recordId}/tickets/${ticketId}/resolve`, {
+      method: "PATCH",
+    });
   },
 };

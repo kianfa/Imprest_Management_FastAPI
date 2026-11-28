@@ -8,6 +8,7 @@ import {
   Edit3,
   FileSpreadsheet,
   FolderKanban,
+  MessageSquareWarning,
   Paperclip,
   Plus,
   Receipt,
@@ -17,6 +18,7 @@ import {
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { RecordFormModal } from "@/components/records/RecordFormModal";
 import { ReceiptGalleryModal } from "@/components/records/ReceiptGalleryModal";
+import { TicketModal } from "@/components/records/TicketModal";
 import { JalaliDateInput } from "@/components/ui/JalaliDateInput";
 import { HoldToDeleteButton } from "@/components/ui/HoldToDeleteButton";
 import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
@@ -51,6 +53,7 @@ export default function RecordsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ExpenseRecord | null>(null);
   const [galleryRecord, setGalleryRecord] = useState<ExpenseRecord | null>(null);
+  const [ticketRecord, setTicketRecord] = useState<ExpenseRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -344,6 +347,15 @@ export default function RecordsPage() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           type="button"
+                          onClick={() => setTicketRecord(rec)}
+                          title={t.tickets}
+                          aria-label={t.tickets}
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-amber-500"
+                        >
+                          <MessageSquareWarning className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setEditingRecord(rec);
                             setFormOpen(true);
@@ -420,6 +432,15 @@ export default function RecordsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => setTicketRecord(rec)}
+                      title={t.tickets}
+                      aria-label={t.tickets}
+                      className="rounded-lg bg-[var(--bg-elevated)] p-2 text-[var(--text-muted)] hover:text-amber-500"
+                    >
+                      <MessageSquareWarning className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setEditingRecord(rec);
                         setFormOpen(true);
@@ -483,6 +504,11 @@ export default function RecordsPage() {
         record={galleryRecord}
         onClose={() => setGalleryRecord(null)}
         onUpdated={loadRecords}
+      />
+
+      <TicketModal
+        record={ticketRecord}
+        onClose={() => setTicketRecord(null)}
       />
 
       <ConfirmDeleteModal

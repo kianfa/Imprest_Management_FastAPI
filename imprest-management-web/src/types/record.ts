@@ -4,6 +4,25 @@ export interface RecordImage {
   file_path: string;
 }
 
+export interface RecordTicket {
+  id: number;
+  record_id: string;
+  company_id: number;
+  message: string;
+  status: "OPEN" | "RESOLVED";
+  created_at: string;
+  resolved_at: string | null;
+  created_by: {
+    id: number;
+    username: string;
+    full_name: string;
+    role: string;
+    company_id?: number | null;
+    is_active?: boolean;
+    created_at?: string;
+  };
+}
+
 export interface ExpenseRecord {
   id: string;
   company_id: number;
