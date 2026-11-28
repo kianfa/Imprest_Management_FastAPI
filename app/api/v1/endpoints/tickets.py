@@ -46,7 +46,7 @@ def create_record_ticket(
 
     # 2. Create the ticket
     ticket = RecordTicket(
-        record_id=record.id,
+        record_id=record_id,
         company_id=current_user.company_id,
         created_by_id=current_user.id,
         message=payload.message.strip(),
