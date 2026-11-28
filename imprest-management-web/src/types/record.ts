@@ -40,6 +40,7 @@ export interface ExpenseRecord {
   created_at: string;
   last_modified: string;
   images: RecordImage[] | null;
+  tickets?: RecordTicket[] | null;
 }
 
 export interface RecordUpdate {

@@ -317,9 +317,23 @@ export default function RecordsPage() {
             ) : (
               records.map((rec) => {
                 const imgCount = rec.images?.length || 0;
+                const openTicketsCount = rec.tickets?.filter((tk) => tk.status === "OPEN").length || 0;
                 return (
                   <tr key={rec.id} className="hover:bg-[var(--bg-elevated)]/40">
-                    <td className="px-4 py-3.5 font-medium">{rec.invoice_no}</td>
+                    <td className="px-4 py-3.5 font-medium">
+                      <div className="flex items-center gap-2">
+                        <span>{rec.invoice_no}</span>
+                        {openTicketsCount > 0 && (
+                          <span
+                            title={`${openTicketsCount} ${t.openTicket}`}
+                            className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500 ring-1 ring-amber-500/30"
+                          >
+                            <MessageSquareWarning className="h-3 w-3" />
+                            <span className="tabular-nums">{openTicketsCount}</span>
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3.5 text-[var(--text-muted)]">{rec.project_code}</td>
                     <td className="tabular-nums px-4 py-3.5 text-[var(--text-muted)]" dir="ltr">
                       {rec.record_date}
@@ -348,11 +362,21 @@ export default function RecordsPage() {
                         <button
                           type="button"
                           onClick={() => setTicketRecord(rec)}
-                          title={t.tickets}
+                          title={openTicketsCount > 0 ? `${openTicketsCount} ${t.openTicket}` : t.tickets}
                           aria-label={t.tickets}
-                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-amber-500"
+                          className={`relative rounded-lg p-1.5 transition ${
+                            openTicketsCount > 0
+                              ? "bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/40"
+                              : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-amber-500"
+                          }`}
                         >
                           <MessageSquareWarning className="h-4 w-4" />
+                          {openTicketsCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                            </span>
+                          )}
                         </button>
                         <button
                           type="button"
@@ -394,14 +418,25 @@ export default function RecordsPage() {
         ) : (
           records.map((rec) => {
             const imgCount = rec.images?.length || 0;
+            const openTicketsCount = rec.tickets?.filter((tk) => tk.status === "OPEN").length || 0;
             return (
               <div
                 key={rec.id}
-                className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4"
+                className={`rounded-2xl border bg-[var(--bg-surface)] p-4 ${
+                  openTicketsCount > 0 ? "border-amber-500/40" : "border-[var(--border-subtle)]"
+                }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-semibold">{rec.invoice_no}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{rec.invoice_no}</span>
+                      {openTicketsCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 ring-1 ring-amber-500/30">
+                          <MessageSquareWarning className="h-3 w-3" />
+                          <span className="tabular-nums">{openTicketsCount}</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="tabular-nums mt-0.5 text-xs text-[var(--text-muted)]">
                       {rec.project_code} • {rec.record_date}
                     </div>
@@ -433,11 +468,21 @@ export default function RecordsPage() {
                     <button
                       type="button"
                       onClick={() => setTicketRecord(rec)}
-                      title={t.tickets}
+                      title={openTicketsCount > 0 ? `${openTicketsCount} ${t.openTicket}` : t.tickets}
                       aria-label={t.tickets}
-                      className="rounded-lg bg-[var(--bg-elevated)] p-2 text-[var(--text-muted)] hover:text-amber-500"
+                      className={`relative rounded-lg p-2 transition ${
+                        openTicketsCount > 0
+                          ? "bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/40"
+                          : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-amber-500"
+                      }`}
                     >
                       <MessageSquareWarning className="h-4 w-4" />
+                      {openTicketsCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -509,6 +554,7 @@ export default function RecordsPage() {
       <TicketModal
         record={ticketRecord}
         onClose={() => setTicketRecord(null)}
+        onUpdated={loadRecords}
       />
 
       <ConfirmDeleteModal

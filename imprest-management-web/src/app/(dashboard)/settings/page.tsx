@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("project-codes");
   const [lookups, setLookups] = useState<LookupItem[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // Quick Add Forms
@@ -33,6 +34,7 @@ export default function SettingsPage() {
 
   const loadTab = useCallback(async () => {
     if (!isAdmin) return;
+    setLoading(true);
     setError("");
     try {
       if (activeTab === "users") {
@@ -42,6 +44,8 @@ export default function SettingsPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error loading data");
+    } finally {
+      setLoading(false);
     }
   }, [activeTab, isAdmin]);
 
@@ -105,13 +109,13 @@ export default function SettingsPage() {
   return (
     <DashboardShell>
       {/* Tabs */}
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-5 flex overflow-x-auto pb-1 gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+            className={`whitespace-nowrap shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
               activeTab === tab.id
                 ? "bg-[var(--accent-primary)] text-white"
                 : "border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -208,44 +212,62 @@ export default function SettingsPage() {
 
       {/* List Table */}
       <div className="overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-        {activeTab === "users" ? (
-          <table className="w-full text-start text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 text-xs text-[var(--text-muted)]">
-                <th className="px-4 py-3 text-start">{t.username}</th>
-                <th className="px-4 py-3 text-start">{t.fullName}</th>
-                <th className="px-4 py-3 text-start">{t.role}</th>
-                <th className="px-4 py-3 text-start">{t.status}</th>
-                <th className="px-4 py-3 text-end">{t.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-subtle)]">
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-4 py-3 font-medium">{u.username}</td>
-                  <td className="px-4 py-3">{u.full_name}</td>
-                  <td className="px-4 py-3">{u.role}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs ${
-                        u.is_active
-                          ? "bg-[var(--status-success)]/15 text-[var(--status-success)]"
-                          : "bg-[var(--status-danger)]/15 text-[var(--status-danger)]"
-                      }`}
-                    >
-                      {u.is_active ? t.active : t.inactive}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    <HoldToDeleteButton
-                      label={t.holdToDeleteHint}
-                      onTrigger={() => setDeleteTarget({ type: "user", id: u.id, label: u.username })}
-                    />
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div
+              role="status"
+              aria-label={t.loading}
+              className="h-8 w-8 animate-spin rounded-full border-3 border-[var(--accent-primary)] border-t-transparent"
+            />
+          </div>
+        ) : activeTab === "users" ? (
+          users.length === 0 ? (
+            <div className="py-12 text-center text-sm text-[var(--text-muted)]">
+              {t.noRecords}
+            </div>
+          ) : (
+            <table className="w-full text-start text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 text-xs text-[var(--text-muted)]">
+                  <th className="px-4 py-3 text-start">{t.username}</th>
+                  <th className="px-4 py-3 text-start">{t.fullName}</th>
+                  <th className="px-4 py-3 text-start">{t.role}</th>
+                  <th className="px-4 py-3 text-start">{t.status}</th>
+                  <th className="px-4 py-3 text-end">{t.actions}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-4 py-3 font-medium">{u.username}</td>
+                    <td className="px-4 py-3">{u.full_name}</td>
+                    <td className="px-4 py-3">{u.role}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs ${
+                          u.is_active
+                            ? "bg-[var(--status-success)]/15 text-[var(--status-success)]"
+                            : "bg-[var(--status-danger)]/15 text-[var(--status-danger)]"
+                        }`}
+                      >
+                        {u.is_active ? t.active : t.inactive}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      <HoldToDeleteButton
+                        label={t.holdToDeleteHint}
+                        onTrigger={() => setDeleteTarget({ type: "user", id: u.id, label: u.username })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        ) : lookups.length === 0 ? (
+          <div className="py-12 text-center text-sm text-[var(--text-muted)]">
+            {t.noRecords}
+          </div>
         ) : (
           <table className="w-full text-start text-sm">
             <thead>

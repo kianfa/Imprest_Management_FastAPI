@@ -18,9 +18,10 @@ import type { ExpenseRecord, RecordTicket } from "@/types/record";
 interface TicketModalProps {
   record: ExpenseRecord | null;
   onClose: () => void;
+  onUpdated?: () => void;
 }
 
-export function TicketModal({ record, onClose }: TicketModalProps) {
+export function TicketModal({ record, onClose, onUpdated }: TicketModalProps) {
   const { t } = useApp();
   const [tickets, setTickets] = useState<RecordTicket[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@ export function TicketModal({ record, onClose }: TicketModalProps) {
       const newTicket = await recordsService.createTicket(record.id, message.trim());
       setTickets((prev) => [newTicket, ...prev]);
       setMessage("");
+      onUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create ticket");
     } finally {
@@ -86,6 +88,7 @@ export function TicketModal({ record, onClose }: TicketModalProps) {
       setTickets((prev) =>
         prev.map((item) => (item.id === ticketId ? updated : item))
       );
+      onUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resolve ticket");
     } finally {
