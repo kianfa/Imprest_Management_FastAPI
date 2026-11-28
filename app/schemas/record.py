@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Annotated
 from pydantic import BaseModel, Field, AfterValidator, field_validator
 from app.utils.solar_date import validate_jalali_date_str
+from app.schemas.ticket import TicketOut
 
 
 def check_jalali(v: str) -> str:
@@ -62,6 +63,7 @@ class RecordOut(RecordBase):
     created_at: datetime
     last_modified: datetime
     images: List[RecordImageOut] = None
+    tickets: Optional[List[TicketOut]] = None
 
     class Config:
         from_attributes = True

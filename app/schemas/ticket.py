@@ -3,7 +3,6 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from app.schemas.user import UserOut
 
-
 class TicketBase(BaseModel):
     message: str = Field(..., min_length=2, max_length=1000, description="Description of the issue with this record")
 
