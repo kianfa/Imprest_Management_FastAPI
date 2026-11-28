@@ -58,7 +58,7 @@ class RecordImage(Base):
     __tablename__ = "record_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    record_id = Column(String(36), ForeignKey("records.id", ondelete="CASCADE"), nullable=False)
+    record_id = Column(String(36), ForeignKey("records.id", ondelete="CASCADE"), nullable=False, index=True)
     file_path = Column(String(500), nullable=False)  # Supabase Storage URL
     file_name = Column(String(255), nullable=False)
 
