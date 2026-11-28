@@ -1,12 +1,21 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, Index, text
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
 
 class ExpenseRecord(Base):
     __tablename__ = "records"
+    __table_args__ = (
+        Index(
+            "ix_records_company_created_date",
+            "company_id",
+            text("created_at DESC"),
+            "record_date",
+            postgresql_where=text("deleted = false"),
+        ),
+    )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
