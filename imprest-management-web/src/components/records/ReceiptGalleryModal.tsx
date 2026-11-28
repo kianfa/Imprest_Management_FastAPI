@@ -87,7 +87,7 @@ export function ReceiptGalleryModal({ record, onClose, onUpdated }: ReceiptGalle
                 <img src={img.file_path} alt={img.file_name} className="h-48 w-full object-cover" />
               </a>
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="truncate text-xs text-[var(--text-muted)]">{img.file_name}</span>
+                <span className="truncate text-xs font-mono text-[var(--text-muted)]" dir="ltr">{img.file_name}</span>
                 <HoldToDeleteButton
                   label={t.holdToDeleteHint}
                   onTrigger={() => setDeleteTarget(img)}
